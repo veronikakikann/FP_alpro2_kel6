@@ -14,8 +14,7 @@ A beautiful web application for monitoring user health patterns and predicting s
 
 - **Backend:** Python Flask
 - **Database:** MySQL
-- **Frontend:** HTML5, CSS3, JavaScript
-- **Charts:** Chart.js
+- **Frontend:** HTML5, CSS
 - **ML:** Pickle (for model loading)
 
 ## 📁 Project Structure
@@ -272,5 +271,6 @@ For issues or questions, please check:
 4. Correct file structure
 
 ---
+
 
 **Built with ❤️ using Flask, MySQL, and modern web design principles**
