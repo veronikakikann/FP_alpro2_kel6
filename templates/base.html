@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}REST App{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="logo">
+            <span>🧘</span>
+            <span>RESTapp</span>
+        </a>
+        <div class="nav-buttons">
+            {% if session.username %}
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('profile') }}" class="btn btn-outline">Profile</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-primary">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn btn-outline">Log in</a>
+                <a href="{{ url_for('register') }}" class="btn btn-primary">Sign up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container" style="margin-top: 1rem;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
