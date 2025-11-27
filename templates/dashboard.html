@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - REST App{% endblock %}
+
+{% block content %}
+<div class="container fade-in">
+    <div style="text-align: center; margin: 2rem 0;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Welcome Back, {{ user.first_name }}!</h1>
+        <p style="color: #666; font-size: 1.1rem;">Here's your wellness overview</p>
+    </div>
+    
+    <div class="dashboard-grid">
+        <!-- Stress Level Card -->
+        <div class="stat-card stress-indicator">
+            <h3>🎯 Stress Level</h3>
+            {% if stress_level %}
+                <div class="stress-emoji">
+                    {% if stress_level == 'Low' %}😊
+                    {% elif stress_level == 'Medium' %}😐
+                    {% else %}😰{% endif %}
+                </div>
+                <div class="stress-level stress-{{ stress_level|lower }}">{{ stress_level }}</div>
+            {% else %}
+                <p style="color: #999; margin-top: 2rem;">No data yet. Add your first log!</p>
+            {% endif %}
+        </div>
+        
+        <!-- Heart Rate Card -->
+        <div class="stat-card">
+            <h3>❤️ Average Heart Rate</h3>
+            <div style="text-align: center; margin-top: 2rem;">
+                <div style="font-size: 3rem; font-weight: 800; color: #f44336;">
+                    {{ avg_heart_rate }} <span style="font-size: 1.5rem;">bpm</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sleep Duration Chart -->
+        <div class="stat-card">
+            <h3>😴 Sleep Duration</h3>
+            <div class="chart-container">
+                <canvas id="sleepChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Recommendation Card -->
+        <div class="stat-card recommendation-card-small">
+            <h3>💡 Health Tip</h3>
+            <div style="margin-top: 1rem;">
+                <!-- Menggunakan variabel 'recommendation' yang dikirim dari Flask -->
+                <p style="color: #555; line-height: 1.6; font-size: 0.95rem;">{{ recommendation }}</p>
+            </div>
+        </div>
+        
+        <!-- Daily Steps Chart -->
+        <div class="stat-card">
+            <h3>👟 Daily Steps</h3>
+            <div class="chart-container">
+                <canvas id="stepsChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Blood Pressure Chart -->
+        <div class="stat-card">
+            <h3>💓 Blood Pressure</h3>
+            <div class="chart-container">
+                <canvas id="bpChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating Add Daily Log Button -->
+    <a href="{{ url_for('add_log') }}" class="btn btn-primary floating-add-log">
+        ➕ Add Daily Log
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Chart.js Configuration
+    Chart.defaults.font.family = 'Nunito';
+    Chart.defaults.color = '#2c3e50';
+    
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    display: false,
+                    color: 'rgba(0, 0, 0, 0.05)'
+                },
+                ticks: {
+                    stepSize: 1,
+                    callback: function(value) {
+                        if (Number.isInteger(value)) {
+                            return value;
+                        }
+                        return '';
+                    }
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        }
+    };
+    
+    // Sleep Chart
+    fetch('/api/sleep_data')
+        .then(response => response.json())
+        .then(data => {
+            new Chart(document.getElementById('sleepChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Sleep Hours',
+                        data: data.data,
+                        backgroundColor: 'rgba(168, 218, 220, 0.7)',
+                        borderColor: 'rgba(127, 179, 213, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: chartOptions
+            });
+        });
+    
+    // Steps Chart
+    fetch('/api/steps_data')
+        .then(response => response.json())
+        .then(data => {
+            new Chart(document.getElementById('stepsChart'), {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Steps',
+                        data: data.data,
+                        borderColor: 'rgba(184, 212, 196, 1)',
+                        backgroundColor: 'rgba(184, 212, 196, 0.2)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        ...chartOptions.scales,
+                        y: {
+                            ...chartOptions.scales.y,
+                            ticks: {
+                                stepSize: 100,
+                                callback: function(value) {
+                                    if (value % 100 === 0) {
+                                        return value;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    
+    // Blood Pressure Chart
+    fetch('/api/bp_data')
+        .then(response => response.json())
+        .then(data => {
+            new Chart(document.getElementById('bpChart'), {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Systolic',
+                        data: data.systolic,
+                        borderColor: 'rgba(244, 67, 54, 1)',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4
+                    }, {
+                        label: 'Diastolic',
+                        data: data.diastolic,
+                        borderColor: 'rgba(127, 179, 213, 1)',
+                        backgroundColor: 'rgba(127, 179, 213, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        ...chartOptions.scales,
+                        y: {
+                            ...chartOptions.scales.y,
+                            ticks: {
+                                stepSize: 10,
+                                callback: function(value) {
+                                    if (value % 10 === 0) {
+                                        return value;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+</script>
+{% endblock %}
