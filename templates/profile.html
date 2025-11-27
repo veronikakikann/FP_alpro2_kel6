@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - REST App{% endblock %}
+
+{% block content %}
+<div class="form-container fade-in">
+    <div class="glass-card">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{ user.first_name[0]|upper }}{{ user.last_name[0]|upper }}
+            </div>
+            <h2>{{ user.first_name }} {{ user.last_name }}</h2>
+            <p style="color: #666;">@{{ user.username }}</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('profile') }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" class="form-control" 
+                       value="{{ user.username }}" readonly style="background: rgba(200,200,200,0.2); cursor: not-allowed;">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" class="form-control" 
+                           value="{{ user.first_name }}" required maxlength="20">
+                </div>
+                
+                <div class="form-group">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" class="form-control" 
+                           value="{{ user.last_name }}" required maxlength="50">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender" class="form-control" required>
+                        <option value="M" {% if user.gender == 'M' %}selected{% endif %}>Male</option>
+                        <option value="F" {% if user.gender == 'F' %}selected{% endif %}>Female</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="birthdate">Birthdate</label>
+                    <input type="date" id="birthdate" name="birthdate" class="form-control" 
+                           value="{{ user.birthdate.strftime('%Y-%m-%d') }}" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="occupation">Occupation</label>
+                <input type="text" id="occupation" name="occupation" class="form-control" 
+                       value="{{ user.occupation }}" required maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label for="bmi_category">BMI Category</label>
+                <select id="bmi_category" name="bmi_category" class="form-control" required>
+                    <option value="Normal" {% if user.bmi_category == 'Normal' %}selected{% endif %}>Normal</option>
+                    <option value="Overweight" {% if user.bmi_category == 'Overweight' %}selected{% endif %}>Overweight</option>
+                    <option value="Obese" {% if user.bmi_category == 'Obese' %}selected{% endif %}>Obese</option>
+                </select>
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 1rem 3rem;">
+                    💾 Save Changes
+                </button>
+            </div>
+        </form>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline">← Back to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

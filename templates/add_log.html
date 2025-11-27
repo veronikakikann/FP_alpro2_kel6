@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Add Daily Log - REST App{% endblock %}
+
+{% block content %}
+<div class="form-container fade-in">
+    <div class="glass-card">
+        <h2 style="text-align: center; font-size: 2.5rem; margin-bottom: 2rem;">Tell Us About Your Habits!</h2>
+        
+        <form method="POST" action="{{ url_for('add_log') }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sleep_duration">1. Sleep Duration (hours)</label>
+                    <input type="number" id="sleep_duration" name="sleep_duration" class="form-control" 
+                           step="0.5" min="0" max="24" required placeholder="e.g., 7.5">
+                </div>
+                
+                <div class="form-group">
+                    <label for="sleep_quality">2. Quality of Sleep (1-10)</label>
+                    <input type="range" id="sleep_quality" name="sleep_quality" min="1" max="10" value="5" required>
+                    <div style="text-align: center; margin-top: 0.5rem; font-weight: 700; font-size: 1.2rem; color: #7fb3d5;">
+                        <span id="quality_value">5</span>
+                    </div>
+                    <!-- <label for="sleep_quality">2. Quality of Sleep (0-10)</label>
+                    <div style="display: flex; align-items: flex-end; gap: 1rem;">
+                        <input type="range" id="sleep_quality" name="sleep_quality" min="0" max="10" value="5" required style="flex: 1; margin-bottom: 0px;">
+                        <span id="quality_value" style="font-weight: 700; font-size: 1.2rem; color: #7fb3d5; min-width: 2rem; text-align: left; display: flex; align-items: flex-end; height: 100%; padding-bottom: 4px;">5</span>
+                    </div> -->
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="daily_steps">3. Physical Activity (Daily Steps)</label>
+                <input type="number" id="daily_steps" name="daily_steps" class="form-control" 
+                       min="0" max="100000" required placeholder="e.g., 10000">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="systolic_bp">4. Blood Pressure - Systolic</label>
+                    <input type="number" id="systolic_bp" name="systolic_bp" class="form-control" 
+                           min="60" max="250" required placeholder="e.g., 120">
+                </div>
+                
+                <div class="form-group">
+                    <label for="diastolic_bp">4. Blood Pressure - Diastolic</label>
+                    <input type="number" id="diastolic_bp" name="diastolic_bp" class="form-control" 
+                           min="40" max="150" required placeholder="e.g., 80">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="heart_rate">5. Heart Rate (bpm)</label>
+                <input type="number" id="heart_rate" name="heart_rate" class="form-control" 
+                       min="30" max="220" required placeholder="e.g., 72">
+            </div>
+            
+            <div class="form-group">
+                <label for="sleep_disorder">7. Sleep Disorder</label>
+                <select id="sleep_disorder" name="sleep_disorder" class="form-control" required>
+                    <option value="None">None</option>
+                    <option value="Insomnia">Insomnia</option>
+                    <option value="Apnea">Sleep Apnea</option>
+                </select>
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary" style="font-size: 1.2rem; padding: 1rem 3rem;">
+                    Submit & Analyze
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Update sleep quality display
+    const qualitySlider = document.getElementById('sleep_quality');
+    const qualityValue = document.getElementById('quality_value');
+    
+    qualitySlider.addEventListener('input', function() {
+        qualityValue.textContent = this.value;
+    });
+</script>
+{% endblock %}
