@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}REST App - Monitor Your Stress{% endblock %}
+
+{% block content %}
+<section class="hero fade-in">
+    <div class="hero-content">
+        <h1>Real-time Evaluation of Stress & Tension</h1>
+        <p>Monitor your stress based on lifestyle & sleep quality in one interactive dashboard.</p>
+        <a href="{{ url_for('register') }}" class="btn btn-primary" style="font-size: 1.2rem; padding: 1rem 3rem;">Get Started</a>
+    </div>
+    <div class="hero-image">
+        <div style="background: rgba(255,255,255,0.8); padding: 3rem; border-radius: 30px; box-shadow: 0 8px 32px rgba(0,0,0,0.1);">
+            <div style="font-size: 8rem; text-align: center;">🧘‍♀️</div>
+            <h2 style="text-align: center; color: #2c3e50; margin-top: 1rem;">Find Your Peace</h2>
+        </div>
+    </div>
+</section>
+
+<section class="container" style="margin: 4rem auto; padding-bottom: 4rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">How It Works</h2>
+        <p style="font-size: 1.2rem; color: #555;">Track, analyze, and improve your wellbeing</p>
+    </div>
+    
+    <div class="dashboard-grid">
+        <div class="glass-card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <h3>Track Your Health</h3>
+            <p>Log sleep patterns, activity levels, and vital signs daily</p>
+        </div>
+        
+        <div class="glass-card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🤖</div>
+            <h3>AI Analysis</h3>
+            <p>Get personalized stress predictions using machine learning</p>
+        </div>
+        
+        <div class="glass-card" style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📈</div>
+            <h3>Visual Insights</h3>
+            <p>See trends and patterns in beautiful, easy-to-read charts</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
