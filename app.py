@@ -19,9 +19,8 @@ DB_CONFIG = {
     'database': 'restapp_db'
 }
 
-# ======================
 # ML MODEL PLACEHOLDER
-# ======================
+
 def load_ml_model():
     """
     Load the pre-trained ML model and scaler.
@@ -43,7 +42,7 @@ def predict_stress(gender, age, occupation, sleep_duration, sleep_quality,
     """
     Predict stress level based on user inputs.
     
-    Args:
+    Data :
         gender: 'M' or 'F'
         age: integer (calculated from birthdate)
         occupation: string
@@ -102,7 +101,7 @@ def predict_stress(gender, age, occupation, sleep_duration, sleep_quality,
     if sleep_disorder != 'None':
         stress_score += 2
     
-    # Map score to stress level
+    # Stress Level
     if stress_score >= 5:
         return 'High'
     elif stress_score >= 3:
@@ -110,9 +109,46 @@ def predict_stress(gender, age, occupation, sleep_duration, sleep_quality,
     else:
         return 'Low'
 
-# ======================
+# RECOMMENDATION
+def get_recommendation(stress_level, sleep_duration=None, heart_rate=None, steps=None):
+    """Enhanced rule-based recommendations"""
+    
+    recommendations = {
+        'Low': [
+            "You're doing great! Keep up with your daily walks and maintain your healthy routine.",
+            "Excellent work! Consider trying yoga or meditation to maintain this balance.",
+            "Keep it up! Your healthy habits are paying off."
+        ],
+        'Medium': [
+            "Consider taking short breaks throughout the day. A 10-minute meditation can help.",
+            "Try the 4-7-8 breathing technique: inhale for 4, hold for 7, exhale for 8.",
+            "Take a 15-minute nature walk to reset your mind."
+        ],
+        'High': [
+            "Try a 5-minute breathing exercise. Focus on deep, slow breaths.",
+            "Consider speaking with a healthcare professional if stress persists.",
+            "Practice progressive muscle relaxation before bed."
+        ]
+    }
+    
+    # Tambahkan rekomendasi spesifik berdasarkan metrics lain
+    if sleep_duration and sleep_duration < 6:
+        return "You're getting less than 6 hours of sleep. Try to sleep 30 minutes earlier tonight."
+    
+    if heart_rate and heart_rate > 85:
+        return "Your heart rate is elevated. Try 10 minutes of deep breathing exercises."
+    
+    if steps and steps < 5000:
+        return "You're below 5000 steps today. Take a 10-minute walk after your next meal."
+    
+    # Random dari list untuk variasi
+    import random
+    return random.choice(recommendations.get(stress_level, ["Stay mindful of your health."]))
+
+
+
 # DATABASE FUNCTIONS
-# ======================
+
 def get_db_connection():
     try:
         connection = mysql.connector.connect(**DB_CONFIG)
@@ -128,9 +164,9 @@ def calculate_age(birthdate):
         age -= 1
     return age
 
-# ======================
+
 # AUTHENTICATION
-# ======================
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -139,9 +175,8 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# ======================
 # ROUTES
-# ======================
+
 @app.route('/')
 def index():
     if 'username' in session:
@@ -237,6 +272,11 @@ def dashboard():
     username = session['username']
     conn = get_db_connection()
     
+    # Default values jika user baru/belum ada log
+    stress_level = "Low"
+    recommendation_text = "Welcome! Start by adding your first daily log to get personalized recommendations."
+    avg_heart_rate = 0
+    
     if conn:
         try:
             cursor = conn.cursor(dictionary=True)
@@ -245,29 +285,53 @@ def dashboard():
             cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
             user = cursor.fetchone()
             
-            # Get latest stress level
-            cursor.execute("""SELECT stress_level FROM daily_logs 
-                            WHERE username = %s AND stress_level IS NOT NULL
-                            ORDER BY timestamp DESC LIMIT 1""", (username,))
+            # 1. PERUBAHAN DISINI: Ambil semua metrics, bukan cuma stress_level
+            # Kita butuh sleep, heart_rate, dan steps untuk logika rekomendasi
+            cursor.execute("""SELECT stress_level, sleep_duration, heart_rate, daily_steps 
+                              FROM daily_logs 
+                              WHERE username = %s AND stress_level IS NOT NULL
+                              ORDER BY timestamp DESC LIMIT 1""", (username,))
             latest_log = cursor.fetchone()
-            stress_level = latest_log['stress_level'] if latest_log else None
+            
+            # 2. Logika memproses data log terakhir
+            if latest_log:
+                stress_level = latest_log['stress_level']
+                
+                # PANGGIL FUNGSI REKOMENDASI DISINI
+                recommendation_text = get_recommendation(
+                    stress_level=stress_level,
+                    sleep_duration=latest_log['sleep_duration'],
+                    heart_rate=latest_log['heart_rate'],
+                    steps=latest_log['daily_steps']
+                )
             
             # Get average heart rate
             cursor.execute("""SELECT AVG(heart_rate) as avg_hr FROM daily_logs 
-                            WHERE username = %s""", (username,))
+                              WHERE username = %s""", (username,))
             avg_hr = cursor.fetchone()
-            avg_heart_rate = round(avg_hr['avg_hr']) if avg_hr['avg_hr'] else 0
+            if avg_hr and avg_hr['avg_hr']:
+                avg_heart_rate = round(avg_hr['avg_hr'])
             
-            return render_template('dashboard.html', user=user, stress_level=stress_level, 
-                                 avg_heart_rate=avg_heart_rate)
+            # 3. Kirim variable 'recommendation' ke HTML
+            return render_template('dashboard.html', 
+                                 user=user, 
+                                 stress_level=stress_level, 
+                                 avg_heart_rate=avg_heart_rate,
+                                 recommendation=recommendation_text) # <--- Variable baru
                                  
         except Error as e:
             flash(f'Error loading dashboard: {str(e)}', 'error')
         finally:
-            cursor.close()
+            if 'cursor' in locals():
+                cursor.close()
             conn.close()
     
-    return render_template('dashboard.html')
+    # Fallback jika koneksi DB gagal
+    return render_template('dashboard.html', 
+                         stress_level="Low", 
+                         recommendation="Unable to load recommendations.", 
+                         avg_heart_rate=0)
+
 
 @app.route('/add_log', methods=['GET', 'POST'])
 @login_required
