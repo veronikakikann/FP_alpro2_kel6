@@ -23,91 +23,70 @@ DB_CONFIG = {
 
 def load_ml_model():
     """
-    Load the pre-trained ML model and scaler.
-    TODO: Replace this with actual model loading once model.pkl is provided
+    Load the pre-trained ML model pipeline.
     """
-    # Uncomment these lines when you have the model files:
-    # with open('model.pkl', 'rb') as f:
-    #     model = pickle.load(f)
-    # with open('scaler.pkl', 'rb') as f:
-    #     scaler = pickle.load(f)
-    # return model, scaler
-    return None, None
+    try:
+        model = joblib.load('stress_predictor_model.pkl')
+        return model, None # Return None untuk scaler karena sudah ada di dalam model
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None, None
 
-MODEL, SCALER = load_ml_model()
+MODEL, _ = load_ml_model()
+
 
 def predict_stress(gender, age, occupation, sleep_duration, sleep_quality, 
                    bmi_category, systolic_bp, diastolic_bp, heart_rate, 
                    daily_steps, sleep_disorder):
-    """
-    Predict stress level based on user inputs.
     
-    Data :
-        gender: 'M' or 'F'
-        age: integer (calculated from birthdate)
-        occupation: string
-        sleep_duration: float (hours)
-        sleep_quality: int (1-10)
-        bmi_category: 'Normal', 'Overweight', 'Obese'
-        systolic_bp: int
-        diastolic_bp: int
-        heart_rate: int
-        daily_steps: int
-        sleep_disorder: 'Apnea', 'Insomnia', 'None'
-    
-    Returns:
-        stress_level: 'Low', 'Medium', 'High'
-    """
-    
-    # TODO: When model.pkl and scaler.pkl are available, implement actual prediction:
-    # 
-    # 1. Encode categorical variables (gender, occupation, bmi_category, sleep_disorder)
-    # 2. Create feature array in the correct order
-    # 3. Scale features using the loaded scaler
-    # 4. Make prediction using the loaded model
-    # 5. Map prediction to stress levels (Low/Medium/High)
-    #
-    # Example:
-    # features = prepare_features(gender, age, occupation, sleep_duration, sleep_quality,
-    #                            bmi_category, systolic_bp, diastolic_bp, heart_rate,
-    #                            daily_steps, sleep_disorder)
-    # scaled_features = SCALER.transform([features])
-    # prediction = MODEL.predict(scaled_features)
-    # stress_level = map_prediction_to_level(prediction)
-    
-    # MOCK PREDICTION (Replace this when model is available)
-    # Simple heuristic for demonstration
-    stress_score = 0
-    
-    if sleep_duration < 6:
-        stress_score += 2
-    elif sleep_duration < 7:
-        stress_score += 1
-        
-    if sleep_quality < 5:
-        stress_score += 2
-    elif sleep_quality < 7:
-        stress_score += 1
-        
-    if systolic_bp > 130 or diastolic_bp > 85:
-        stress_score += 1
-        
-    if heart_rate > 80:
-        stress_score += 1
-        
-    if daily_steps < 5000:
-        stress_score += 1
-        
-    if sleep_disorder != 'None':
-        stress_score += 2
-    
-    # Stress Level
-    if stress_score >= 5:
-        return 'High'
-    elif stress_score >= 3:
+    # Cek apakah model ada
+    if MODEL is None:
         return 'Medium'
-    else:
-        return 'Low'
+
+    try:
+        try:
+            bp_ratio = float(diastolic_bp) / float(systolic_bp)
+        except ZeroDivisionError:
+            bp_ratio = 0
+            
+        age_int = int(age)
+        if age_int <= 30:
+            age_group = 'Young'
+        elif age_int <= 45:
+            age_group = 'Adult'
+        elif age_int <= 60:
+            age_group = 'Mid-Age'
+        else:
+            age_group = 'Senior'
+
+        # --- 2. PERSIAPAN DATA ---
+        input_data = pd.DataFrame([{
+            'Gender': gender.capitalize(), 
+            'Age': age_int,
+            'Occupation': occupation,
+            'Sleep Duration': float(sleep_duration),
+            'Quality of Sleep': int(sleep_quality),
+            'BMI Category': bmi_category.capitalize(),
+            'Heart Rate': int(heart_rate),
+            'Daily Steps': int(daily_steps),
+            'Sleep Disorder': sleep_disorder,
+            'Systolic BP': int(systolic_bp),
+            'Diastolic BP': int(diastolic_bp),
+            # Kolom Hasil Hitungan
+            'BP_Ratio': bp_ratio,
+            'Age_Group': age_group
+        }])
+
+        # --- 3. PREDIKSI ---
+  
+        prediction = MODEL.predict(input_data)
+        
+        return prediction[0] 
+
+    except Exception as e:
+        print(f"Error saat prediksi: {e}")
+        return "Error"
+        
 
 # RECOMMENDATION
 def get_recommendation(stress_level, sleep_duration=None, heart_rate=None, steps=None):
@@ -537,4 +516,5 @@ def get_bp_data():
     return jsonify({'labels': [], 'systolic': [], 'diastolic': []})
 
 if __name__ == '__main__':
+
     app.run(debug=True)
