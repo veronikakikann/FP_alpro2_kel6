@@ -10,7 +10,6 @@
     </div>
     
     <div class="dashboard-grid">
-        <!-- Stress Level Card -->
         <div class="stat-card stress-indicator">
             <h3>🎯 Stress Level</h3>
             {% if stress_level %}
@@ -21,55 +20,54 @@
                 </div>
                 <div class="stress-level stress-{{ stress_level|lower }}">{{ stress_level }}</div>
             {% else %}
-                <p style="color: #999; margin-top: 2rem;">No data yet. Add your first log!</p>
+                <p style="color: #999;">No data yet. Add your first log!</p> 
             {% endif %}
         </div>
         
-        <!-- Heart Rate Card -->
         <div class="stat-card">
             <h3>❤️ Average Heart Rate</h3>
-            <div style="text-align: center; margin-top: 2rem;">
+            <div class="card-content-main"> 
                 <div style="font-size: 3rem; font-weight: 800; color: #f44336;">
                     {{ avg_heart_rate }} <span style="font-size: 1.5rem;">bpm</span>
                 </div>
             </div>
         </div>
         
-        <!-- Sleep Duration Chart -->
         <div class="stat-card">
             <h3>😴 Sleep Duration</h3>
-            <div class="chart-container">
-                <canvas id="sleepChart"></canvas>
+            <div class="card-content-main">
+                <div class="chart-container">
+                    <canvas id="sleepChart"></canvas>
+                </div>
             </div>
         </div>
         
-        <!-- Recommendation Card -->
         <div class="stat-card recommendation-card-small">
             <h3>💡 Health Tip</h3>
-            <div style="margin-top: 1rem;">
-                <!-- Menggunakan variabel 'recommendation' yang dikirim dari Flask -->
+            <div class="card-content-main">
                 <p style="color: #555; line-height: 1.6; font-size: 0.95rem;">{{ recommendation }}</p>
             </div>
         </div>
         
-        <!-- Daily Steps Chart -->
         <div class="stat-card">
             <h3>👟 Daily Steps</h3>
-            <div class="chart-container">
-                <canvas id="stepsChart"></canvas>
+            <div class="card-content-main">
+                <div class="chart-container">
+                    <canvas id="stepsChart"></canvas>
+                </div>
             </div>
         </div>
         
-        <!-- Blood Pressure Chart -->
         <div class="stat-card">
             <h3>💓 Blood Pressure</h3>
-            <div class="chart-container">
-                <canvas id="bpChart"></canvas>
+            <div class="card-content-main">
+                <div class="chart-container">
+                    <canvas id="bpChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- Floating Add Daily Log Button -->
     <a href="{{ url_for('add_log') }}" class="btn btn-primary floating-add-log">
         ➕ Add Daily Log
     </a>

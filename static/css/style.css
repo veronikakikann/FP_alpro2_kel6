@@ -242,7 +242,7 @@ select.form-control {
     background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 2rem;
+    padding: 1.5rem 2rem; 
     box-shadow: var(--shadow-soft);
     transition: all 0.3s ease;
     position: relative;
@@ -251,7 +251,7 @@ select.form-control {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; 
 }
 
 .stat-card::before {
@@ -272,22 +272,42 @@ select.form-control {
 .stat-card h3 {
     font-size: 1.1rem;
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: 0; 
     color: var(--primary-blue);
     display: flex;
     align-items: center;
     gap: 10px;
+    align-self: flex-start; 
 }
 
-.stat-card .icon {
-    font-size: 1.5rem;
+.stat-card > *:not(h3) {
+    margin-top: 1.2rem;
+    flex-grow: 1; 
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-.stress-indicator {
-    text-align: center;
-    padding: 2rem;
+.stat-card .card-content-main {
+    text-align: center; /* Untuk angka Heart Rate */
+    align-items: center;
 }
 
+/* Health Tip harus rata kiri */
+.recommendation-card-small .card-content-main {
+    align-items: flex-start;
+}
+
+.stat-card.stress-indicator .stress-emoji,
+.stat-card.stress-indicator .stress-level,
+.stat-card.stress-indicator p {
+    flex-grow: 0; 
+    margin-top: 0; 
+}
+
+/* STRESS LEVEL TEXT (Medium/Low/High) */
 .stress-level {
     font-size: 2.5rem;
     font-weight: 800;
@@ -309,13 +329,16 @@ select.form-control {
 .stress-emoji {
     font-size: 4rem;
     margin-bottom: 0.5rem;
+    margin-top: 0; 
 }
 
 /* Chart Container */
 .chart-container {
     position: relative;
-    height: 300px;
-    margin-top: 1rem;
+    height: 100%; 
+    margin: 0;
+    flex-grow: 1; 
+    width: 100%; 
 }
 
 /* Profile Section */
