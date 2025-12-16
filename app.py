@@ -1,19 +1,18 @@
+import requests
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import mysql.connector
 from mysql.connector import Error
 import bcrypt
 from datetime import datetime, timedelta
-import random
-import pickle
-import os
 from functools import wraps
-import joblib
-import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here_change_in_production'
 
-# Database Configuration
+# KONFIGURASI ML SERVER (LAPTOP 1)
+ML_SERVER_URL = 'http://192.168.1.100:5001'  # ganti sama IP Laptop 1
+
+# Database Configuration 
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
@@ -21,62 +20,58 @@ DB_CONFIG = {
     'database': 'restapp_db'
 }
 
-# ML MODEL PLACEHOLDER
-# ===== LOAD MODEL =====
-import joblib
-import pandas as pd
-
-MODEL = None
-
-def load_ml_model():
-    global MODEL
+# FUNGSI BARU: PREDIKSI VIA ML SERVER 
+def predict_stress_via_ml_server(gender, age, occupation, sleep_duration, sleep_quality, 
+                                  bmi_category, systolic_bp, diastolic_bp, heart_rate, 
+                                  daily_steps, sleep_disorder):
+    """
+    Kirim data ke ML Server (Laptop 1) untuk prediksi
+    """
     try:
-        MODEL = joblib.load('model/stress_predictor_model.pkl')
-        print("MODEL STATUS: OK")
-    except Exception as e:
-        print("MODEL STATUS: FAILED")
-        print(e)
-
-load_ml_model()
-
-def predict_stress(
-    gender, age, occupation,
-    sleep_duration, sleep_quality,
-    bmi_category, systolic_bp, diastolic_bp,
-    heart_rate, daily_steps, sleep_disorder
-):
-    if MODEL is None:
-        return "Model Not Loaded"
-
-    try:
-        input_df = pd.DataFrame([{
-            'Gender': gender,
-            'Age': int(age),
-            'Occupation': occupation,
-            'Sleep Duration': float(sleep_duration),
-            'Quality of Sleep': int(sleep_quality),
-            'BMI Category': bmi_category,
-            'Heart Rate': int(heart_rate),
-            'Daily Steps': int(daily_steps),
-            'Systolic BP': int(systolic_bp),
-            'Diastolic BP': int(diastolic_bp),
-            'Sleep Disorder': sleep_disorder
-        }])
-
-        input_df['BP_Ratio'] = input_df['Diastolic BP'] / input_df['Systolic BP']
-
-        input_df['Age_Group'] = pd.cut(
-            input_df['Age'],
-            bins=[18, 30, 45, 60, 120],
-            labels=['Young', 'Adult', 'Mid-Age', 'Senior']
+        # Data yang dikirim
+        payload = {
+            'gender': gender,
+            'age': age,
+            'occupation': occupation,
+            'sleep_duration': sleep_duration,
+            'sleep_quality': sleep_quality,
+            'bmi_category': bmi_category,
+            'systolic_bp': systolic_bp,
+            'diastolic_bp': diastolic_bp,
+            'heart_rate': heart_rate,
+            'daily_steps': daily_steps,
+            'sleep_disorder': sleep_disorder
+        }
+        
+        # Kirim request ke ML Server
+        response = requests.post(
+            f'{ML_SERVER_URL}/predict',
+            json=payload,
+            timeout=10
         )
-
-        prediction = MODEL.predict(input_df)
-        return prediction[0]
-
-    except Exception as e:
-        print("Prediction error:", e)
-        return "Error"
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result['success']:
+                return result['stress_level']
+        
+        # Jika gagal, pakai fallback
+        print(f"ML Server error: {response.text}")
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Connection to ML Server failed: {e}")
+        
+def predict_stress(gender, age, occupation, sleep_duration, sleep_quality, 
+                   bmi_category, systolic_bp, diastolic_bp, heart_rate, 
+                   daily_steps, sleep_disorder):
+    """
+    Main prediction function - gunakan ML Server
+    """
+    return predict_stress_via_ml_server(
+        gender, age, occupation, sleep_duration, sleep_quality,
+        bmi_category, systolic_bp, diastolic_bp, heart_rate,
+        daily_steps, sleep_disorder
+    )
 
 # RECOMMENDATION
 def get_recommendation(stress_level, sleep_duration=None, heart_rate=None, steps=None):
@@ -518,5 +513,11 @@ def get_bp_data():
     return jsonify({'labels': [], 'systolic': [], 'diastolic': []})
 
 if __name__ == '__main__':
-
-    app.run(debug=True)
+    print("\n" + "="*50)
+    print("🌐 WEB SERVER - LAPTOP 2")
+    print("="*50)
+    print(f"ML Server URL: {ML_SERVER_URL}")
+    print("Server will run on: http://0.0.0.0:5000")
+    print("="*50 + "\n")
+    
+    app.run(host='0.0.0.0', port=5000, debug=True)
