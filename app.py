@@ -7,6 +7,8 @@ import random
 import pickle
 import os
 from functools import wraps
+import joblib
+import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here_change_in_production'
@@ -20,73 +22,61 @@ DB_CONFIG = {
 }
 
 # ML MODEL PLACEHOLDER
+# ===== LOAD MODEL =====
+import joblib
+import pandas as pd
+
+MODEL = None
 
 def load_ml_model():
-    """
-    Load the pre-trained ML model pipeline.
-    """
+    global MODEL
     try:
-        model = joblib.load('stress_predictor_model.pkl')
-        return model, None # Return None untuk scaler karena sudah ada di dalam model
+        MODEL = joblib.load('model/stress_predictor_model.pkl')
+        print("MODEL STATUS: OK")
     except Exception as e:
-        print(f"Error loading model: {e}")
-        return None, None
+        print("MODEL STATUS: FAILED")
+        print(e)
 
-MODEL, _ = load_ml_model()
+load_ml_model()
 
-
-def predict_stress(gender, age, occupation, sleep_duration, sleep_quality, 
-                   bmi_category, systolic_bp, diastolic_bp, heart_rate, 
-                   daily_steps, sleep_disorder):
-    
-    # Cek apakah model ada
+def predict_stress(
+    gender, age, occupation,
+    sleep_duration, sleep_quality,
+    bmi_category, systolic_bp, diastolic_bp,
+    heart_rate, daily_steps, sleep_disorder
+):
     if MODEL is None:
-        return 'Medium'
+        return "Model Not Loaded"
 
     try:
-        try:
-            bp_ratio = float(diastolic_bp) / float(systolic_bp)
-        except ZeroDivisionError:
-            bp_ratio = 0
-            
-        age_int = int(age)
-        if age_int <= 30:
-            age_group = 'Young'
-        elif age_int <= 45:
-            age_group = 'Adult'
-        elif age_int <= 60:
-            age_group = 'Mid-Age'
-        else:
-            age_group = 'Senior'
-
-        # --- 2. PERSIAPAN DATA ---
-        input_data = pd.DataFrame([{
-            'Gender': gender.capitalize(), 
-            'Age': age_int,
+        input_df = pd.DataFrame([{
+            'Gender': gender,
+            'Age': int(age),
             'Occupation': occupation,
             'Sleep Duration': float(sleep_duration),
             'Quality of Sleep': int(sleep_quality),
-            'BMI Category': bmi_category.capitalize(),
+            'BMI Category': bmi_category,
             'Heart Rate': int(heart_rate),
             'Daily Steps': int(daily_steps),
-            'Sleep Disorder': sleep_disorder,
             'Systolic BP': int(systolic_bp),
             'Diastolic BP': int(diastolic_bp),
-            # Kolom Hasil Hitungan
-            'BP_Ratio': bp_ratio,
-            'Age_Group': age_group
+            'Sleep Disorder': sleep_disorder
         }])
 
-        # --- 3. PREDIKSI ---
-  
-        prediction = MODEL.predict(input_data)
-        
-        return prediction[0] 
+        input_df['BP_Ratio'] = input_df['Diastolic BP'] / input_df['Systolic BP']
+
+        input_df['Age_Group'] = pd.cut(
+            input_df['Age'],
+            bins=[18, 30, 45, 60, 120],
+            labels=['Young', 'Adult', 'Mid-Age', 'Senior']
+        )
+
+        prediction = MODEL.predict(input_df)
+        return prediction[0]
 
     except Exception as e:
-        print(f"Error saat prediksi: {e}")
+        print("Prediction error:", e)
         return "Error"
-        
 
 # RECOMMENDATION
 def get_recommendation(stress_level, sleep_duration=None, heart_rate=None, steps=None):
@@ -124,8 +114,6 @@ def get_recommendation(stress_level, sleep_duration=None, heart_rate=None, steps
     import random
     return random.choice(recommendations.get(stress_level, ["Stay mindful of your health."]))
 
-
-
 # DATABASE FUNCTIONS
 
 def get_db_connection():
@@ -135,6 +123,20 @@ def get_db_connection():
     except Error as e:
         print(f"Database connection error: {e}")
         return None
+    
+def get_user_info(username):
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="namadb"
+    )
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT gender FROM users WHERE username=%s", (username,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
 
 def calculate_age(birthdate):
     today = datetime.now()
@@ -317,66 +319,66 @@ def dashboard():
 def add_log():
     if request.method == 'POST':
         username = session['username']
-        sleep_duration = float(request.form.get('sleep_duration'))
-        sleep_quality = int(request.form.get('sleep_quality'))
-        systolic_bp = int(request.form.get('systolic_bp'))
-        diastolic_bp = int(request.form.get('diastolic_bp'))
-        heart_rate = int(request.form.get('heart_rate'))
-        daily_steps = int(request.form.get('daily_steps'))
-        sleep_disorder = request.form.get('sleep_disorder')
-        
+
+        sleep_duration = float(request.form['sleep_duration'])
+        sleep_quality = int(request.form['sleep_quality'])
+        systolic_bp = int(request.form['systolic_bp'])
+        diastolic_bp = int(request.form['diastolic_bp'])
+        heart_rate = int(request.form['heart_rate'])
+        daily_steps = int(request.form['daily_steps'])
+        sleep_disorder = request.form['sleep_disorder']
+
         conn = get_db_connection()
-        if conn:
-            try:
-                cursor = conn.cursor(dictionary=True)
-                
-                # Get user details for prediction
-                cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-                user = cursor.fetchone()
-                
-                # Calculate age
-                age = calculate_age(user['birthdate'])
-                
-                # Predict stress level
-                stress_level = predict_stress(
-                    user['gender'], age, user['occupation'],
-                    sleep_duration, sleep_quality, user['bmi_category'],
-                    systolic_bp, diastolic_bp, heart_rate,
-                    daily_steps, sleep_disorder
-                )
-                
-                # Generate unique log_id
-                log_id = f"{username}_{datetime.now().strftime('%Y%m%d')}"
-                
-                # Insert or update log
-                query = """
-                INSERT INTO daily_logs (log_id, username, sleep_duration, sleep_quality,
-                    systolic_bp, diastolic_bp, heart_rate, daily_steps, sleep_disorder, stress_level)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                    sleep_duration=VALUES(sleep_duration),
-                    sleep_quality=VALUES(sleep_quality),
-                    systolic_bp=VALUES(systolic_bp),
-                    diastolic_bp=VALUES(diastolic_bp),
-                    heart_rate=VALUES(heart_rate),
-                    daily_steps=VALUES(daily_steps),
-                    sleep_disorder=VALUES(sleep_disorder),
-                    stress_level=VALUES(stress_level)
-                """
-                cursor.execute(query, (log_id, username, sleep_duration, sleep_quality,
-                                     systolic_bp, diastolic_bp, heart_rate, daily_steps,
-                                     sleep_disorder, stress_level))
-                conn.commit()
-                
-                flash('Daily log added successfully!', 'success')
-                return redirect(url_for('dashboard'))
-                
-            except Error as e:
-                flash(f'Error adding log: {str(e)}', 'error')
-            finally:
-                cursor.close()
-                conn.close()
-    
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
+        user = cursor.fetchone()
+
+        age = calculate_age(user['birthdate'])
+
+        stress_level = predict_stress(
+            user['gender'],
+            age,
+            user['occupation'],
+            sleep_duration,
+            sleep_quality,
+            user['bmi_category'],
+            systolic_bp,
+            diastolic_bp,
+            heart_rate,
+            daily_steps,
+            sleep_disorder
+        )
+
+        log_id = f"{username}_{datetime.now().strftime('%Y%m%d')}"
+
+        cursor.execute("""
+        INSERT INTO daily_logs (
+            log_id, username, sleep_duration, sleep_quality,
+            systolic_bp, diastolic_bp, heart_rate,
+            daily_steps, sleep_disorder, stress_level
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ON DUPLICATE KEY UPDATE
+            sleep_duration=VALUES(sleep_duration),
+            sleep_quality=VALUES(sleep_quality),
+            systolic_bp=VALUES(systolic_bp),
+            diastolic_bp=VALUES(diastolic_bp),
+            heart_rate=VALUES(heart_rate),
+            daily_steps=VALUES(daily_steps),
+            sleep_disorder=VALUES(sleep_disorder),
+            stress_level=VALUES(stress_level)
+        """, (
+            log_id, username, sleep_duration, sleep_quality,
+            systolic_bp, diastolic_bp, heart_rate,
+            daily_steps, sleep_disorder, stress_level
+        ))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return redirect(url_for('dashboard'))
+
     return render_template('add_log.html')
 
 @app.route('/profile', methods=['GET', 'POST'])
